@@ -1,118 +1,150 @@
 /************************************************************************************
- * Objetivo: API responsável pelo sistema de biblioteca LionBook
- * Data: 13/02/2025
+ * Objetivo: API responsável pelo sistema de gerenciamento de estoque SAEB
+ * Data: 27/11/2025
  * Autor: João Pedro
- * Versão: 1.0
+ * Versão: 2.0
  *****************************************************************************/
 
-const express    = require('express')
-const cors       = require('cors')
-const bodyParser = require('body-parser')
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const swaggerJsDoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
+const path = require('path');
 
-const controllerLivro           = require('./controller/livro/controllerLivro.js')
-const controllerUsuario         = require('./controller/usuario/controllerUsuario.js')
-const controllerMovimentacao    = require('./controller/movimentacao/controllerMovimentacao.js')
+// Importação das rotas
+const router = require('./routes/router');
 
-//Criando o formato de dados que será recebido no body da requisição(POST/PUT)
-const bodyParserJSON = bodyParser.json()
+// Configuração do Swagger
+const swaggerOptions = {
+    definition: {
+        openapi: '3.0.0',
+        info: {
+            title: 'API SAEB - Sistema de Gerenciamento de Estoque',
+            version: '2.0.0',
+            description: 'API para gerenciamento de produtos, categorias, fabricantes e estoque',
+            contact: {
+                name: 'Suporte SAEB',
+                email: 'suporte@saeb.com'
+            }
+        },
+        servers: [
+            { url: 'http://localhost:8080', description: 'Servidor de Desenvolvimento' },
+            { url: 'https://api.saeb.com', description: 'Servidor de Produção' }
+        ],
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                }
+            },
+            schemas: {
+                Usuario: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'integer' },
+                        nome: { type: 'string' },
+                        email: { type: 'string', format: 'email' }
+                    }
+                },
+                UsuarioInput: {
+                    type: 'object',
+                    required: ['nome', 'email', 'senha'],
+                    properties: {
+                        nome: { type: 'string' },
+                        email: { type: 'string', format: 'email' },
+                        senha: { type: 'string', format: 'password' }
+                    }
+                }
+            }
+        }
+    },
+    apis: [
+        path.join(__dirname, 'routes/*.js'),
+        path.join(__dirname, 'controller/**/*.js')
+    ]
+};
 
-//Cria o objeto app para criar a api
-const app = express()
+const swaggerDocs = swaggerJsDoc(swaggerOptions);
 
-//Configurações do CORS
-app.use((request, response, next)=>{
-    response.header('Access-Control-Allow-Origin','*')
-    response.header('Access-Control-Allow-Methods','GET, POST, PUT, DELETE, OPTIONS')
+// Cria o objeto app para criar a API
+const app = express();
 
-    app.use(cors())
-    next()
-})
- 
-//LIVROS
-app.post('/v1/lionbook/livro', cors(), bodyParserJSON, async function(request, response) {
-    let contentType = request.headers['content-type']
-    let dadosBody = request.body
-    let result = await controllerLivro.inserirLivro(dadosBody, contentType)
-    response.status(result.status_code)
-    response.json(result)
-})
+// Configurações do CORS (deve vir primeiro)
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+}));
 
-app.get('/v1/lionbook/livro', cors(), async function(request, response) {
-    let result = await controllerLivro.listarLivro()
-    response.status(result.status_code)
-    response.json(result)
-})
+// Configurações de middlewares globais
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-app.get('/v1/lionbook/livro/:id', cors(), async function(request, response){
-    let idLivro = request.params.id
-    let result = await controllerLivro.buscarLivro(idLivro)
-    response.status(result.status_code)
-    response.json(result)
-})
+// Middleware para log de requisições
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+    next();
+});
 
-app.delete('/v1/lionbook/livro/:id', cors(), async function (request, response){
-    let idLivro = request.params.id
-    let result = await controllerLivro.excluirLivro(idLivro)
-    response.status(result.status_code)
-    response.json(result)
-})
+// Rota para documentação da API
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs, {
+    explorer: true,
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'SAEB API Documentation',
+    customfavIcon: '/favicon.ico'
+}));
 
-app.put('/v1/lionbook/livro/:id', cors(), bodyParserJSON, async function (request, response){
-    let contentType = request.headers['content-type']
-    let idLivro = request.params.id
-    let dadosBody = request.body
-    let result = await controllerLivro.atualizarLivro(dadosBody, idLivro, contentType)
-    response.status(result.status_code)
-    response.json(result)
-})
+// Configuração das rotas da API
+app.use(router);
 
-//USUARIOS
-app.post('/v1/lionbook/usuario', cors(), bodyParserJSON, async function(request, response) {
-    let contentType = request.headers['content-type']
-    let dadosBody = request.body
-    let result = await controllerUsuario.inserirUsuario(dadosBody, contentType)
-    response.status(result.status_code)
-    response.json(result)
-})
+// Rota raiz redireciona para a documentação
+app.get('/', (req, res) => {
+    res.redirect('/api-docs');
+});
 
-app.get('/v1/lionbook/usuario', cors(), async function(request, response) {
-    let result = await controllerUsuario.listarUsuario()
-    response.status(result.status_code)
-    response.json(result)
-})
+// Middleware para tratamento de erros 404
+app.use((req, res, next) => {
+    res.status(404).json({
+        status: 'error',
+        message: 'Endpoint não encontrado',
+        path: req.originalUrl
+    });
+});
 
-app.get('/v1/lionbook/usuario/:id', cors(), async function(request, response){
-    let idUsuario = request.params.id
-    let result = await controllerUsuario.buscarUsuario(idUsuario)
-    response.status(result.status_code)
-    response.json(result)
-})
+// Middleware para tratamento de erros globais
+app.use((err, req, res, next) => {
+    console.error('Erro não tratado:', err);
+    res.status(500).json({
+        status: 'error',
+        message: 'Erro interno do servidor',
+        error: process.env.NODE_ENV === 'development' ? err.message : {}
+    });
+});
 
-//MOVIMENTACOES
-app.post('/v1/lionbook/movimentacao', cors(), bodyParserJSON, async function(request, response) {
-    let contentType = request.headers['content-type']
-    let dadosBody = request.body
-    let result = await controllerMovimentacao.inserirMovimentacao(dadosBody, contentType)
-    response.status(result.status_code)
-    response.json(result)
-})
+// Configuração da porta
+const PORT = process.env.PORT || 8080;
 
-app.get('/v1/lionbook/movimentacao', cors(), async function(request, response) {
-    let result = await controllerMovimentacao.listarMovimentacao()
-    response.status(result.status_code)
-    response.json(result)
-})
+// Inicialização do servidor
+const server = app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
+    console.log(`Acesse a documentação em: http://localhost:${PORT}/api-docs`);
+});
 
-app.get('/v1/lionbook/tipos-movimentacao', cors(), async function(request, response) {
-    let result = await controllerMovimentacao.listarTiposMovimentacao()
-    response.status(result.status_code)
-    response.json(result)
-})
+// Tratamento de erros não capturados
+process.on('unhandledRejection', (err) => {
+    console.error('Erro não tratado:', err);
+    server.close(() => process.exit(1));
+});
 
+process.on('SIGTERM', () => {
+    console.log('Recebido sinal SIGTERM. Encerrando o servidor...');
+    server.close(() => {
+        console.log('Servidor encerrado com sucesso');
+    });
+});
 
-
-
-
-app.listen(8080, function(){
-    console.log('Servidor aguardando novas requisições...')
-})
+module.exports = app;

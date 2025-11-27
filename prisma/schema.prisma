@@ -1,3 +1,4 @@
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,37 +8,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model tbl_livro {
-  id               Int    @id @default(autoincrement())
-  titulo           String @db.VarChar(100)
-  data_publicacao  DateTime? @db.Date
-  quantidade       Int?
-  isbn             String? @db.VarChar(45)
-  movimentacoes    tbl_movimentacao[]
-}
-
-model tbl_usuario {
-  id            Int    @id @default(autoincrement())
-  login         String @db.VarChar(45)
-  senha         String @db.VarChar(45)
-  movimentacoes tbl_movimentacao[]
-}
-
-model tipo_movimentacao {
-  id            Int    @id @default(autoincrement())
-  tipo          String @db.VarChar(45)
-  movimentacoes tbl_movimentacao[]
-}
-
-model tbl_movimentacao {
-  id                 Int      @id @default(autoincrement())
-  id_movimentacao    Int
-  id_usuario         Int
-  quantidade         Int?
-  data_movimentacao  DateTime? @db.Date
-  id_livro           Int
-  
-  usuario            tbl_usuario @relation(fields: [id_usuario], references: [id])
-  livro              tbl_livro @relation(fields: [id_livro], references: [id])
-  tipo               tipo_movimentacao @relation(fields: [id_movimentacao], references: [id])
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  email     String   @unique
+  senha     String
+  tipo      String
+  ativo     Boolean  @default(true)
+  criadoEm  DateTime @default(now())
 }

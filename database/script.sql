@@ -1,51 +1,115 @@
--- Criação do banco de dados
-CREATE DATABASE LionBook;
-USE LionBook;
 
--- Tabela de livros
-CREATE TABLE tbl_livro (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    titulo VARCHAR(100) NOT NULL,
-    data_publicacao DATE,
-    quantidade INT,
-    isbn VARCHAR(45)
+CREATE DATABASE IF NOT EXISTS SAEB
+    DEFAULT CHARACTER SET utf8mb4
+    DEFAULT COLLATE utf8mb4_general_ci;
+
+USE SAEB;-- ===============================
+--  TABELA USUARIO
+-- ===============================
+CREATE TABLE Usuario (
+    usuario_id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    senha VARCHAR(255) NOT NULL,
+    criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabela de usuários
-CREATE TABLE tbl_usuario (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    login VARCHAR(45) NOT NULL,
-    senha VARCHAR(45) NOT NULL
+-- ===============================
+--  TABELA CATEGORIA
+-- ===============================
+CREATE TABLE Categoria (
+    categoria_id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL UNIQUE
 );
 
--- Tabela de tipos de movimentação (ex: empréstimo, devolução)
-CREATE TABLE tipo_movimentacao (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    tipo VARCHAR(45) NOT NULL
+-- ===============================
+--  TABELA FABRICANTE
+-- ===============================
+CREATE TABLE Fabricante (
+    fabricante_id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL UNIQUE
 );
 
--- Tabela de movimentações (ligação entre usuário, livro e tipo de movimentação)
-CREATE TABLE tbl_movimentacao (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    id_movimentacao INT,
-    id_usuario INT,
-    quantidade INT,
-    data_movimentacao DATE,
-    id_livro INT,
-    FOREIGN KEY (id_usuario) REFERENCES tbl_usuario(id),
-    FOREIGN KEY (id_livro) REFERENCES tbl_livro(id),
-    FOREIGN KEY (id_movimentacao) REFERENCES tipo_movimentacao(id)
+-- ===============================
+--  TABELA PRODUTO
+-- ===============================
+CREATE TABLE Produto (
+    produto_id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(200) NOT NULL,
+    codigo VARCHAR(100) NOT NULL UNIQUE,
+    descricao TEXT,
+    criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    categoria_id INT NOT NULL,
+    fabricante_id INT NOT NULL,
+
+    FOREIGN KEY (categoria_id) REFERENCES Categoria(categoria_id),
+    FOREIGN KEY (fabricante_id) REFERENCES Fabricante(fabricante_id)
 );
 
--- Dados iniciais
-INSERT INTO tipo_movimentacao (tipo) VALUES 
-('Empréstimo'),
-('Devolução');
+-- ===============================
+--  TABELA ESPECIFICACAO (1:1)
+-- ===============================
+CREATE TABLE Especificacao (
+    especificacao_id INT AUTO_INCREMENT PRIMARY KEY,
+    produto_id INT NOT NULL UNIQUE,
 
-INSERT INTO tbl_livro (titulo, data_publicacao, quantidade, isbn) VALUES 
-('Dom Casmurro', '1899-01-01', 5, '978-85-359-0277-5'),
-('O Cortiço', '1890-01-01', 3, '978-85-08-12348-4');
+    processador VARCHAR(150),
+    memoria_ram VARCHAR(50),
+    armazenamento_interno VARCHAR(50),
+    tela_tamanho VARCHAR(50),
+    tela_resolucao VARCHAR(50),
+    camera_frontal VARCHAR(50),
+    camera_traseira VARCHAR(50),
+    conectividade VARCHAR(150),
+    sistema_operacional VARCHAR(100),
+    portas VARCHAR(150),
 
-INSERT INTO tbl_usuario (login, senha) VALUES 
-('admin', '123456'),
-('user1', 'senha123');
+    FOREIGN KEY (produto_id) REFERENCES Produto(produto_id) ON DELETE CASCADE
+);
+
+-- ===============================
+--  TABELA VARIACAO (1:N)
+-- ===============================
+CREATE TABLE Variacao (
+    variacao_id INT AUTO_INCREMENT PRIMARY KEY,
+    produto_id INT NOT NULL,
+
+    cor VARCHAR(50),
+    armazenamento VARCHAR(50),
+    modelo VARCHAR(100),
+    voltagem VARCHAR(50),
+    peso VARCHAR(50),
+
+    FOREIGN KEY (produto_id) REFERENCES Produto(produto_id) ON DELETE CASCADE
+);
+
+-- ===============================
+--  TABELA ESTOQUE_ATUAL (OBRIGATÓRIA)
+-- ===============================
+CREATE TABLE Estoque_Atual (
+    produto_id INT PRIMARY KEY,
+    quantidade INT NOT NULL DEFAULT 0,
+
+    FOREIGN KEY (produto_id) REFERENCES Produto(produto_id) ON DELETE CASCADE
+);
+
+-- ===============================
+--  TABELA ESTOQUE MOVIMENTACAO
+-- ===============================
+CREATE TABLE Estoque_Movimentacao (
+    movimentacao_id INT AUTO_INCREMENT PRIMARY KEY,
+    produto_id INT NOT NULL,
+    usuario_id INT NOT NULL,
+
+    tipo ENUM('entrada', 'saida') NOT NULL,
+    quantidade INT NOT NULL CHECK (quantidade > 0),
+    motivo VARCHAR(255),
+    data_movimentacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    estoque_antes INT NOT NULL,
+    estoque_depois INT NOT NULL,
+
+    FOREIGN KEY (produto_id) REFERENCES Produto(produto_id),
+    FOREIGN KEY (usuario_id) REFERENCES Usuario(usuario_id)
+);
+show tables;
