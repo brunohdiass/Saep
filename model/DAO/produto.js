@@ -63,29 +63,32 @@ const inserirProduto = async (produto) => {
 };
 
 const atualizarProduto = async (id, produto) => {
-    try {
-        // Garante que todos os valores passados para o SQL são válidos (nenhum undefined)
-        produto.nome = produto.nome || null;
-        produto.codigo = produto.codigo || null;
-        produto.descricao = produto.descricao || null;
-        produto.categoria_id = produto.categoria_id || null;
-        produto.fabricante_id = produto.fabricante_id || null;
+    if (!id || isNaN(id) || !produto) {
+        throw new Error('Invalid parameters: ID and produto must be provided');
+    }
 
+    const { nome, codigo, descricao, categoria_id, fabricante_id } = produto;
+
+    if (nome === undefined || codigo === undefined || descricao === undefined || categoria_id === undefined || fabricante_id === undefined) {
+        throw new Error('Invalid produto object: Missing required fields');
+    }
+
+    try {
         const [result] = await database.execute(
             `UPDATE Produto 
              SET nome = ?, codigo = ?, descricao = ?, categoria_id = ?, fabricante_id = ? 
              WHERE produto_id = ?`,
-            [produto.nome, produto.codigo, produto.descricao, produto.categoria_id, produto.fabricante_id, id]
+            [nome, codigo, descricao, categoria_id, fabricante_id, id]
         );
 
         if (result.affectedRows > 0) {
-            return await buscarProdutoPorId(id);  // Retorna o produto atualizado
+            return await buscarProdutoPorId(id);
         } else {
-            return null;  // Produto não encontrado
+            throw new Error(`Produto com ID ${id} não encontrado.`);
         }
     } catch (error) {
         console.error(`Erro ao atualizar produto com ID ${id}:`, error);
-        return null;
+        throw new Error('Erro ao atualizar produto no banco de dados.');
     }
 };
 

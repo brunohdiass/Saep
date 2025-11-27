@@ -12,6 +12,7 @@ const bodyParser = require('body-parser');
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const path = require('path');
+const jsonValidator = require('./middleware/jsonValidator');
 
 // Importação das rotas
 const router = require('./routes/router');
@@ -83,6 +84,8 @@ app.use(cors({
 // Configurações de middlewares globais
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(jsonValidator);
 
 // Middleware para log de requisições
 app.use((req, res, next) => {

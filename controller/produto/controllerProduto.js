@@ -37,48 +37,39 @@ const atualizarProduto = async function(dadosProduto, idProduto, contentType) {
     try {
         const normalizedContentType = String(contentType || '').toLowerCase();
 
-        // Verifica se o Content-Type é JSON
         if (!normalizedContentType.startsWith('application/json')) {
             return message.ERROR_CONTENT_TYPE;
         }
 
-        // Verifica se o ID é válido
         if (!idProduto || isNaN(idProduto)) {
             return message.ERROR_INVALID_ID;
         }
 
-        // Verifica se os campos obrigatórios estão presentes
         if (!dadosProduto.nome || !dadosProduto.codigo || !dadosProduto.categoria_id || !dadosProduto.fabricante_id) {
             return message.ERROR_REQUIRED_FIELDS;
         }
 
-        // Preenche valores nulos para evitar undefined no banco de dados
-        dadosProduto.nome = dadosProduto.nome || null;
-        dadosProduto.codigo = dadosProduto.codigo || null;
-        dadosProduto.descricao = dadosProduto.descricao || null;
-        dadosProduto.categoria_id = dadosProduto.categoria_id || null;
-        dadosProduto.fabricante_id = dadosProduto.fabricante_id || null;
-
-        // Atualiza o produto no banco de dados
-        const produtoAtualizado = await produtoDAO.atualizarProduto(dadosProduto, idProduto);
+        const produtoAtualizado = await produtoDAO.atualizarProduto(idProduto, dadosProduto);
 
         if (produtoAtualizado) {
-            const resultDados = {
-                status: message.SUCCESS_UPDATED_ITEM.status,
-                status_code: message.SUCCESS_UPDATED_ITEM.status_code,
-                message: message.SUCCESS_UPDATED_ITEM.message,
+            return {
+                status: message.SUCCESS_REQUEST.status,
+                status_code: 200,
+                message: 'Produto atualizado com sucesso',
                 produto: produtoAtualizado
             };
-            return resultDados;
+        } else {
+            return message.ERROR_NOT_FOUND;
         }
-
-        return message.ERROR_NOT_FOUND;
     } catch (error) {
-        console.error('Erro ao atualizar produto:', error);
-        return message.ERROR_INTERNAL_SERVER;
+        console.error(`Erro ao atualizar produto:`, error);
+        return {
+            status: false,
+            status_code: 500,
+            message: error.message || 'Erro ao atualizar produto'
+        };
     }
 };
-
 
 const excluirProduto = async function(idProduto) {
     try {
